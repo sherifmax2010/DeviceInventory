@@ -1,0 +1,11 @@
+version: 1.0.{build}
+image: Visual Studio 2017
+platform: x86
+configuration: Release
+
+build_script:
+  - msbuild DeviceInventory.vcxproj /p:Configuration=Release /p:Platform=x86 /p:SolutionDir=%APPVEYOR_BUILD_FOLDER%\ /m
+
+artifacts:
+  - path: artifacts\DeviceInventory.exe
+    name: DeviceInventory
