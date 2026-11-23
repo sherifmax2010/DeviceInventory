@@ -326,7 +326,6 @@ int wmain() {
     }
     if (diskField.empty()) diskField = L"Not Detected";
     
-    csvFields.push_back(diskField);
 
 std::vector<std::wstring> csvFields;
 
