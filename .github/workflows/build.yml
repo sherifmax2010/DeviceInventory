@@ -11,33 +11,44 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+
       - name: Install XP Toolset
         shell: pwsh
         run: |
           $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath
 
-          if (!$vs) {
-            throw "Visual Studio installation not found"
+          $setup = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\setup.exe"
+
+          if (!(Test-Path $setup)) {
+            throw "Visual Studio setup.exe not found"
           }
 
-          $installer = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vs_installer.exe"
+          Write-Host "Visual Studio: $vs"
+          Write-Host "Installing v141 and XP components..."
 
-          if (!(Test-Path $installer)) {
-            throw "Visual Studio Installer not found"
-          }
-
-          & $installer modify `
+          & $setup modify `
             --installPath "$vs" `
-            --add Microsoft.VisualStudio.Workload.NativeDesktop `
+            --productId Microsoft.VisualStudio.Product.Enterprise `
+            --channelId VisualStudio.17.Release `
             --add Microsoft.VisualStudio.Component.VC.v141.x86.x64 `
             --add Microsoft.VisualStudio.Component.WinXP `
             --quiet --wait --norestart
 
           if ($LASTEXITCODE -ne 0) {
-            throw "XP Toolset installation failed: $LASTEXITCODE"
+            throw "Installation failed: $LASTEXITCODE"
           }
 
-          Write-Host "XP Toolset installation completed"
+          Write-Host "Checking XP Toolset files..."
+
+          $xpProps = Get-ChildItem "$vs\VC" -Filter "PlatformToolset.props" -Recurse -ErrorAction SilentlyContinue |
+            Where-Object { $_.FullName -match '\\v141_xp\\' }
+
+          if (!$xpProps) {
+            throw "v141_xp files were not installed. Build stopped."
+          }
+
+          Write-Host "XP Toolset FOUND:"
+          $xpProps | ForEach-Object { Write-Host $_.FullName }
 
       - name: Build EXE
         shell: pwsh
