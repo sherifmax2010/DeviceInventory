@@ -126,7 +126,7 @@ static std::wstring RamTypeName(unsigned long long n) {
     switch ((int)n) {
         case 20: return L"DDR";
         case 21: return L"DDR2";
-        case 22: return L"DDR2 FB–DIMM";
+        case 22: return L"DDR2 FB-DIMM";
         case 24: return L"DDR3";
         case 26: return L"DDR4";
         case 34: return L"DDR5";
@@ -164,8 +164,7 @@ static bool WriteCsv(const std::wstring& path, const std::vector<std::wstring>& 
     std::ofstream f(Utf8(path).c_str(), std::ios::binary | std::ios::app);
     if (!f) return false;
     if (!exists) {
-        const unsigned char bom[] = {0xEF, 0xBB, 0xBF};
-        f.write((const char*)bom, 3);
+        f.write("\xEF\xBB\xBF", 3);
         f << "ComputerName,Manufacturer,Model,CPU,RAMGB,RAMType,RAMUpgrade,Disk,DiskUpgrade\r\n";
     }
     for (size_t i = 0; i < fields.size(); ++i) {
@@ -348,4 +347,4 @@ int wmain() {
 }
 ```[cite: 1]
 
-امسح ملف `DeviceInventory.csv` القديم قبل التشغيل حتى لا تختلف عناوين الأعمدة[cite: 1]. جاهز للخطوة التالية إذا احتجت تعديل ملف `.vcxproj` أو `appveyor.yml` لبناء نسخة XP مضمونة.
+والخبر الجيد في اللوج إن `v141_xp` اشتغل فعلاً على بيئة AppVeyor (`PlatformToolsets\v141_xp`)، فمجرد ما ترفع النسخة دي وتبني، هيكمل البناء ويطلع `DeviceInventory.exe` في فولدر `artifacts\`. جرّبه وقلّي إذا عدّى البناء أو ظهر خطأ في مرحلة `Link`.
