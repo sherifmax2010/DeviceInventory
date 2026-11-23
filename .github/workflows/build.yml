@@ -11,7 +11,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-       - name: Install XP Toolset
+      - name: Install XP Toolset
         shell: pwsh
         run: |
           $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath
@@ -38,6 +38,7 @@ jobs:
           }
 
           Write-Host "XP Toolset installation completed"
+
       - name: Build EXE
         shell: pwsh
         run: |
@@ -55,4 +56,3 @@ jobs:
         with:
           name: DeviceInventory-EXE
           path: artifacts/DeviceInventory.exe
-    
