@@ -342,6 +342,8 @@ int wmain() {
     }
     { std::wostringstream s; s << slotsFree; csvFields.push_back(s.str()); }
 
+    csvFields.push_back(diskField);
+
 
     bool saved = WriteCsv(csvPath, csvFields);
     std::wcout << L"\n";
