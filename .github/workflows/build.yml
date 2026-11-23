@@ -1,61 +1,48 @@
-name: Build DeviceInventory (x86, Windows XP toolset)
+
+name: Build DeviceInventory XP x86
 
 on:
   workflow_dispatch:
 
 jobs:
   build:
-    # This runner image must contain Visual Studio C++ v141_xp toolset.
-    # The workflow checks for it and stops rather than silently producing
-    # an EXE that cannot run on Windows XP.
     runs-on: windows-2022
 
     steps:
-      - name: Checkout source
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Locate MSBuild
-        id: locate
+      - name: Install XP Toolset
         shell: pwsh
         run: |
-          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
-          if (!(Test-Path $vswhere)) {
-            throw "vswhere.exe was not found on this runner."
-          }
-          $msbuild = & $vswhere -latest -products * -find MSBuild\**\Bin\MSBuild.exe | Select-Object -First 1
-          if (!$msbuild) { throw "MSBuild was not found." }
-          "MSBUILD=$msbuild" >> $env:GITHUB_ENV
-          $vsPath = Split-Path (Split-Path (Split-Path $msbuild))
-          "VS_PATH=$vsPath" >> $env:GITHUB_ENV
+          $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath
 
-      - name: Verify XP-compatible compiler toolset
+          if (!$vs) {
+            throw "Visual Studio not found"
+          }
+
+          $setup = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\setup.exe"
+
+          & $setup modify --installPath "$vs" --add Microsoft.VisualStudio.Component.WinXP --quiet --wait --norestart
+
+          if ($LASTEXITCODE -ne 0) {
+            throw "XP Toolset installation failed"
+          }
+
+      - name: Build EXE
         shell: pwsh
         run: |
-          $toolset = Join-Path $env:VS_PATH "VC\Tools\MSVC"
-          $found = Get-ChildItem $toolset -Directory -ErrorAction SilentlyContinue |
-            Where-Object { Test-Path (Join-Path $_.FullName "bin\Hostx86\x86\cl.exe") }
-          if (!$found) {
-            throw "No MSVC compiler installation was found."
-          }
+          $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath
+          $msbuild = Join-Path $vs "MSBuild\Current\Bin\MSBuild.exe"
 
-          # v141_xp is an optional component and is not guaranteed on hosted runners.
-          $xpTargets = Join-Path $env:VS_PATH "VC\Platforms\Win32\PlatformToolsets\v141_xp"
-          if (!(Test-Path $xpTargets)) {
-            throw "The v141_xp platform toolset is not installed on this GitHub runner. A normal x86 build is NOT a safe substitute for Windows XP. Use a runner/image with Visual Studio 2017 v141_xp installed, or build locally with that toolset."
-          }
+          & $msbuild DeviceInventory.vcxproj /p:Configuration=Release /p:Platform=Win32 /p:SolutionDir="$env:GITHUB_WORKSPACE\"
 
-      - name: Build Release x86
-        shell: pwsh
-        run: |
-          & $env:MSBUILD DeviceInventory.vcxproj /m /p:Configuration=Release /p:Platform=Win32 /verbosity:minimal
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          if (!(Test-Path "artifacts\DeviceInventory.exe")) {
-            throw "Build completed but EXE was not found."
+          if ($LASTEXITCODE -ne 0) {
+            throw "Build failed"
           }
 
       - name: Upload EXE
         uses: actions/upload-artifact@v4
         with:
-          name: DeviceInventory-x86-XP-toolset
+          name: DeviceInventory-EXE
           path: artifacts/DeviceInventory.exe
-          if-no-files-found: error
+    
