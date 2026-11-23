@@ -236,10 +236,10 @@ int wmain() {
     unsigned long long totalBytes = 0;
     std::vector<unsigned long long> ramTypes;
     unsigned long long ramModules = 0;
-    rows = wmi.Query(L"SELECT Capacity, SMBIOSMemoryType FROM Win32_PhysicalMemory");
+    rows = wmi.Query(L"SELECT Capacity, MemoryType FROM Win32_PhysicalMemory");
     for (size_t i = 0; i < rows.size(); ++i) {
         totalBytes += GetNum(rows[i], L"Capacity");
-        unsigned long long t = GetNum(rows[i], L"SMBIOSMemoryType");
+        unsigned long long t = GetNum(rows[i], L"MemoryType");
         if (std::find(ramTypes.begin(), ramTypes.end(), t) == ramTypes.end()) ramTypes.push_back(t);
         ++ramModules;
         rows[i]->Release();
