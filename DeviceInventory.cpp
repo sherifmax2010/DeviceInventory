@@ -177,7 +177,7 @@ static bool WriteCsv(const std::wstring& path, const std::vector<std::wstring>& 
     if (!exists) {
         const unsigned char bom[] = {0xEF, 0xBB, 0xBF};
         f.write((const char*)bom, 3);
-        f << "ComputerName,Manufacturer,Model,CPU,RAMGB,RAMType,RAMSlots,RAMSlotsFree\r\n";
+        f << "ComputerName,Manufacturer,Model,CPU,RAMGB,RAMType,RAMSlots,RAMSlotsFree,HardDisk\r\n";
     }
     for (size_t i = 0; i < fields.size(); ++i) {
         if (i) f << ",";
@@ -325,6 +325,8 @@ int wmain() {
         diskField += s.str();
     }
     if (diskField.empty()) diskField = L"Not Detected";
+    
+    csvFields.push_back(diskField);
 
     std::vector<std::wstring> csvFields;
     csvFields.push_back(computerName);
