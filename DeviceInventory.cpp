@@ -145,6 +145,7 @@ static std::wstring DetectDiskType(const std::wstring& model) {
     if (ContainsNoCase(model, L"SSD") ||
         ContainsNoCase(model, L"Solid State") ||
         ContainsNoCase(model, L"NVMe")) return L"SSD";
+    // WMI on older Windows does not expose a reliable universal SSD/HDD property.
     return L"Unknown";
 }
 
@@ -158,18 +159,29 @@ static std::string Utf8(const std::wstring& value) {
     return out;
 }
 
+static std::wstring CsvQuote(const std::wstring& s) {
+    std::wstring out = L"\"";
+    for (size_t i = 0; i < s.size(); ++i) {
+        if (s[i] == L'"') out += L"\"\"";
+        else out += s[i];
+    }
+    out += L"\"";
+    return out;
+}
+
 static bool WriteCsv(const std::wstring& path, const std::vector<std::wstring>& fields) {
     DWORD attr = GetFileAttributesW(path.c_str());
     bool exists = (attr != INVALID_FILE_ATTRIBUTES);
     std::ofstream f(Utf8(path).c_str(), std::ios::binary | std::ios::app);
     if (!f) return false;
     if (!exists) {
-        f.write("\xEF\xBB\xBF", 3);
-        f << "ComputerName,Manufacturer,Model,CPU,RAMGB,RAMType,RAMUpgrade,Disk,DiskUpgrade\r\n";
+        const unsigned char bom[] = {0xEF, 0xBB, 0xBF};
+        f.write((const char*)bom, 3);
+        f << "ComputerName,Manufacturer,Model,CPU,RAMGB,RAMType,RAMSlots,RAMSlotsFree\r\n";
     }
     for (size_t i = 0; i < fields.size(); ++i) {
         if (i) f << ",";
-        f << "\"";
+        f << "\"" ;
         std::string val = Utf8(fields[i]);
         for (size_t j = 0; j < val.size(); ++j) {
             if (val[j] == '"') f << "\"\"";
@@ -286,10 +298,11 @@ int wmain() {
     std::wcout << L"============================================================\n\n";
     std::wcout << L"Computer Name : " << computerName << L"\n";
     std::wcout << L"Manufacturer  : " << manufacturer << L"\n";
-    std::wcout << L"Model         : " << model << L"\n";
-    std::wcout << L"CPU           : " << cpuName << L"\n";
-    std::wcout << L"RAM           : " << ramDisplay << L"\n";
-    std::wcout << L"Hard Disk     : " << storageDisplay << L"\n\n";
+    std::wcout << L"Model        : " << model << L"\n";
+    std::wcout << L"CPU          : " << cpuName << L"\n";
+    std::wcout << L"RAM          : " << ramDisplay << L"\n";
+    std::wcout << L"RAM Slots    : " << ramModules << L" / " << slotsTotal << L" (Used / Total)\n";
+    std::wcout << L"Hard Disk    : " << storageDisplay << L"\n\n";
     std::wcout << L"============================================================\n";
     std::wcout << L"                 UPGRADE RECOMMENDATION\n";
     std::wcout << L"============================================================\n";
@@ -320,9 +333,13 @@ int wmain() {
     csvFields.push_back(cpuName);
     { std::wostringstream s; s << totalRAMGB; csvFields.push_back(s.str()); }
     csvFields.push_back(ramType);
-    csvFields.push_back(ramAction);
-    csvFields.push_back(diskField);
-    csvFields.push_back(storageAction);
+    { 
+    std::wostringstream s;
+    s << ramModules << L" Used / " << slotsTotal << L" Total";
+    csvFields.push_back(s.str());
+    }
+    { std::wostringstream s; s << slotsFree; csvFields.push_back(s.str()); }
+
 
     bool saved = WriteCsv(csvPath, csvFields);
     std::wcout << L"\n";
@@ -345,6 +362,3 @@ int wmain() {
     CoUninitialize();
     return saved ? 0 : 2;
 }
-```[cite: 1]
-
-والخبر الجيد في اللوج إن `v141_xp` اشتغل فعلاً على بيئة AppVeyor (`PlatformToolsets\v141_xp`)، فمجرد ما ترفع النسخة دي وتبني، هيكمل البناء ويطلع `DeviceInventory.exe` في فولدر `artifacts\`. جرّبه وقلّي إذا عدّى البناء أو ظهر خطأ في مرحلة `Link`.
