@@ -11,23 +11,33 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install XP Toolset
+       - name: Install XP Toolset
         shell: pwsh
         run: |
           $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath
 
           if (!$vs) {
-            throw "Visual Studio not found"
+            throw "Visual Studio installation not found"
           }
 
-          $setup = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\setup.exe"
+          $installer = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vs_installer.exe"
 
-          & $setup modify --installPath "$vs" --add Microsoft.VisualStudio.Component.WinXP --quiet --wait --norestart
+          if (!(Test-Path $installer)) {
+            throw "Visual Studio Installer not found"
+          }
+
+          & $installer modify `
+            --installPath "$vs" `
+            --add Microsoft.VisualStudio.Workload.NativeDesktop `
+            --add Microsoft.VisualStudio.Component.VC.v141.x86.x64 `
+            --add Microsoft.VisualStudio.Component.WinXP `
+            --quiet --wait --norestart
 
           if ($LASTEXITCODE -ne 0) {
-            throw "XP Toolset installation failed"
+            throw "XP Toolset installation failed: $LASTEXITCODE"
           }
 
+          Write-Host "XP Toolset installation completed"
       - name: Build EXE
         shell: pwsh
         run: |
