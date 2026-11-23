@@ -328,24 +328,31 @@ int wmain() {
     
     csvFields.push_back(diskField);
 
-    std::vector<std::wstring> csvFields;
-    csvFields.push_back(computerName);
-    csvFields.push_back(manufacturer);
-    csvFields.push_back(model);
-    csvFields.push_back(cpuName);
-    { std::wostringstream s; s << totalRAMGB; csvFields.push_back(s.str()); }
-    csvFields.push_back(ramType);
-    { 
+std::vector<std::wstring> csvFields;
+
+// Add computer information
+csvFields.push_back(computerName);
+csvFields.push_back(manufacturer);
+csvFields.push_back(model);
+csvFields.push_back(cpuName);
+
+// Add RAM information
+{ std::wostringstream s; s << totalRAMGB; csvFields.push_back(s.str()); }
+csvFields.push_back(ramType);
+
+{
     std::wostringstream s;
     s << ramModules << L" Used / " << slotsTotal << L" Total";
     csvFields.push_back(s.str());
-    }
-    { std::wostringstream s; s << slotsFree; csvFields.push_back(s.str()); }
+}
 
-    csvFields.push_back(diskField);
+{ std::wostringstream s; s << slotsFree; csvFields.push_back(s.str()); }
 
+// Add disk information
+csvFields.push_back(diskField);
 
-    bool saved = WriteCsv(csvPath, csvFields);
+// Save CSV
+bool saved = WriteCsv(csvPath, csvFields);
     std::wcout << L"\n";
     if (saved) {
         std::wcout << L"Report saved to:\n" << csvPath << L"\n";
